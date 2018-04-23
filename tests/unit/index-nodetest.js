@@ -2,7 +2,7 @@
 /* jshint mocha: true */
 'use strict';
 var assert = require('ember-cli/tests/helpers/assert');
-var Promise    = require('ember-cli/lib/ext/promise');
+var RSVP = require('rsvp');
 
 describe('ssh-upload plugin', function() {
   var subject, mockUi, context;
@@ -24,10 +24,21 @@ describe('ssh-upload plugin', function() {
     context = {
       ui: mockUi,
       distDir: process.cwd() + '/tests/fixtures/dist',
-      distFiles: ['favicon.ico', 'manifest.json', 'sw.js', '.htaccess', 'assets/test.js'],
+      distFiles: [
+        'favicon.ico',
+        'manifest.json',
+        'sw.js',
+        '.htaccess',
+        'assets/test.js'
+      ],
       uploadClient: {
         upload: function(/*options*/) {
-          return Promise.resolve(['favicon.ico', 'manifest.json', 'sw.js', '.htaccess']);
+          return RSVP.resolve([
+            'favicon.ico',
+            'manifest.json',
+            'sw.js',
+            '.htaccess'
+          ]);
         }
       },
       config: {
@@ -55,7 +66,7 @@ describe('ssh-upload plugin', function() {
 
   it('has a name', function() {
     var plugin = subject.createDeployPlugin({
-      name: 'ssh-upload',
+      name: 'ssh-upload'
     });
 
     assert.equal(plugin.name, 'ssh-upload');
@@ -88,7 +99,7 @@ describe('ssh-upload plugin', function() {
       context.config['ssh-upload'] = {};
 
       plugin.beforeHook(context);
-      assert.throws(function(){
+      assert.throws(function() {
         plugin.configure(context);
       });
     });
@@ -124,7 +135,7 @@ describe('ssh-upload plugin', function() {
           name: 'ssh-upload'
         });
         plugin.beforeHook(context);
-        assert.throws(function(/*error*/){
+        assert.throws(function(/*error*/) {
           plugin.configure(context);
         });
         var messages = mockUi.messages.reduce(function(previous, current) {
@@ -145,7 +156,7 @@ describe('ssh-upload plugin', function() {
           name: 'ssh-upload'
         });
         plugin.beforeHook(context);
-        assert.throws(function(/*error*/){
+        assert.throws(function(/*error*/) {
           plugin.configure(context);
         });
         var messages = mockUi.messages.reduce(function(previous, current) {
@@ -166,7 +177,7 @@ describe('ssh-upload plugin', function() {
           name: 'ssh-upload'
         });
         plugin.beforeHook(context);
-        assert.throws(function(/*error*/){
+        assert.throws(function(/*error*/) {
           plugin.configure(context);
         });
         var messages = mockUi.messages.reduce(function(previous, current) {
@@ -192,7 +203,10 @@ describe('ssh-upload plugin', function() {
       plugin.beforeHook(context);
       plugin.configure(context);
 
-      assert.equal(context.config['ssh-upload'].filePattern, '{.htaccess,*.{js,css,png,gif,ico,jpg,map,json,xml,txt,svg}}');
+      assert.equal(
+        context.config['ssh-upload'].filePattern,
+        '{.htaccess,*.{js,css,png,gif,ico,jpg,map,json,xml,txt,svg}}'
+      );
     });
   });
 
@@ -203,11 +217,13 @@ describe('ssh-upload plugin', function() {
       });
 
       plugin.beforeHook(context);
-      return assert.isFulfilled(plugin.upload(context))
-        .then(function() {
-          assert.equal(mockUi.messages.length, 2);
-          assert.match(mockUi.messages[0], /preparing to upload to SSH host `aaaa`/);
-        });
+      return assert.isFulfilled(plugin.upload(context)).then(function() {
+        assert.equal(mockUi.messages.length, 2);
+        assert.match(
+          mockUi.messages[0],
+          /preparing to upload to SSH host `aaaa`/
+        );
+      });
     });
 
     it('prints success message when files successully uploaded', function() {
@@ -216,20 +232,19 @@ describe('ssh-upload plugin', function() {
       });
 
       plugin.beforeHook(context);
-      return assert.isFulfilled(plugin.upload(context))
-        .then(function() {
-          assert.equal(mockUi.messages.length, 2);
+      return assert.isFulfilled(plugin.upload(context)).then(function() {
+        assert.equal(mockUi.messages.length, 2);
 
-          var messages = mockUi.messages.reduce(function(previous, current) {
-            if (/- uploaded 4 files ok/.test(current)) {
-              previous.push(current);
-            }
+        var messages = mockUi.messages.reduce(function(previous, current) {
+          if (/- uploaded 4 files ok/.test(current)) {
+            previous.push(current);
+          }
 
-            return previous;
-          }, []);
+          return previous;
+        }, []);
 
-          assert.equal(messages.length, 1);
-        });
+        assert.equal(messages.length, 1);
+      });
     });
 
     it('prints an error message if the upload errors', function() {
@@ -239,16 +254,15 @@ describe('ssh-upload plugin', function() {
 
       context.uploadClient = {
         upload: function(/*opts*/) {
-          return Promise.reject(new Error('something bad went wrong'));
+          return RSVP.reject(new Error('something bad went wrong'));
         }
       };
 
       plugin.beforeHook(context);
-      return assert.isRejected(plugin.upload(context))
-        .then(function() {
-          assert.equal(mockUi.messages.length, 3);
-          assert.match(mockUi.messages[1], /- Error: something bad went wrong/);
-        });
+      return assert.isRejected(plugin.upload(context)).then(function() {
+        assert.equal(mockUi.messages.length, 3);
+        assert.match(mockUi.messages[1], /- Error: something bad went wrong/);
+      });
     });
   });
 });
